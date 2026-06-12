@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚒ fall-prompt-gate · run every prompt through six layers</title>
+<meta name="description" content="Sovereign prompt evaluation. Six layers. Version + model history. Regression detection. Single HTML.">
+<meta name="prime" content="619">
+<link rel="manifest" href='data:application/manifest+json,{"name":"fall-prompt-gate","short_name":"prompt-gate","start_url":"./","display":"standalone","background_color":"%230b0a0f","theme_color":"%23ff8c00","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27><rect width=%27192%27 height=%27192%27 fill=%27%230b0a0f%27 rx=%2732%27/><text x=%2796%27 y=%27130%27 font-family=%27serif%27 font-size=%27120%27 text-anchor=%27middle%27 fill=%27%23ff8c00%27>⚒</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+<style>
+:root{
+  --void:#0b0a0f; --void-2:#13121a;
+  --ink:#1a1922;
+  --line:#2a2934;
+  --cream:#c4bfb2; --cream-dim:#8a857a;
+  --brass:#b8974a;
+  --ox:#8b1a1a;
+  --amber:#ff8c00;
+  --green:#4ade80;
+  --red:#ef4444;
+  --yellow:#fbbf24;
+  --serif:Georgia,'Libre Baskerville',ui-serif,serif;
+  --sans:'Inter','DM Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono','SF Mono',ui-monospace,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--void);color:var(--cream);font-family:var(--sans);font-size:14px;line-height:1.55;min-height:100vh}
+body{padding:20px;max-width:1280px;margin:0 auto}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+
+header{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:22px;flex-wrap:wrap}
+header .brand{display:flex;align-items:baseline;gap:10px}
+header .brand h1{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--cream);letter-spacing:0.01em}
+header .brand .glyph{font-size:22px;color:var(--amber)}
+header .brand .tag{font-size:11px;color:var(--cream-dim);letter-spacing:0.18em;text-transform:uppercase;margin-left:6px}
+header .toolbar{display:flex;gap:6px;align-items:center}
+
+.btn{background:transparent;border:1px solid var(--brass);color:var(--cream);padding:8px 14px;font-family:var(--sans);font-size:13px;cursor:pointer;border-radius:2px;letter-spacing:0.03em;transition:all 0.12s}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.btn.primary{background:var(--amber);color:var(--void);border-color:var(--amber);font-weight:600}
+.btn.primary:hover{background:var(--brass);border-color:var(--brass);color:var(--void)}
+.btn.danger:hover{border-color:var(--red);color:var(--red)}
+.btn-icon{background:transparent;border:1px solid var(--line);color:var(--cream-dim);padding:6px 10px;font-size:11px;cursor:pointer;border-radius:2px;letter-spacing:0.06em;text-transform:uppercase}
+.btn-icon:hover{border-color:var(--brass);color:var(--cream)}
+.btn-sm{padding:5px 9px;font-size:11px}
+
+.grid{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+section{background:var(--void-2);border:1px solid var(--line);border-radius:3px;padding:18px}
+section h2{font-family:var(--serif);font-size:15px;font-weight:600;margin-bottom:12px;color:var(--cream);letter-spacing:0.02em}
+section h2 .hint{font-family:var(--sans);font-size:11px;color:var(--cream-dim);font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-left:8px}
+
+label{display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:4px;margin-top:10px}
+label:first-child{margin-top:0}
+input[type=text],select,textarea{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--cream);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:2px;resize:vertical}
+input[type=text]:focus,select:focus,textarea:focus{outline:none;border-color:var(--brass)}
+textarea{min-height:180px;line-height:1.5}
+textarea.tall{min-height:280px}
+.row{display:flex;gap:10px}
+.row > *{flex:1}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tokens{font-family:var(--mono);font-size:11px;color:var(--cream-dim);margin-top:4px}
+.tokens .hi{color:var(--brass)}
+
+/* RESULT BLOCK */
+.layers{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.layer{background:var(--ink);border:1px solid var(--line);border-left:3px solid var(--brass);padding:11px 13px;border-radius:2px}
+.layer .head{display:flex;justify-content:space-between;align-items:baseline}
+.layer .name{font-family:var(--serif);font-size:14px;color:var(--cream);font-weight:600}
+.layer .name .w{font-family:var(--mono);font-size:10px;color:var(--cream-dim);font-weight:400;margin-left:6px;letter-spacing:0.04em}
+.layer .score{font-family:var(--mono);font-size:18px;color:var(--amber);font-weight:600;letter-spacing:0.02em}
+.layer .bar{height:3px;background:var(--line);margin-top:8px;border-radius:1px;overflow:hidden}
+.layer .bar > div{height:100%;background:var(--amber);transition:width 0.4s}
+.layer .notes{font-size:12px;color:var(--cream-dim);margin-top:6px;line-height:1.5}
+.layer.good{border-left-color:var(--green)}
+.layer.good .score{color:var(--green)}
+.layer.good .bar > div{background:var(--green)}
+.layer.weak{border-left-color:var(--red)}
+.layer.weak .score{color:var(--red)}
+.layer.weak .bar > div{background:var(--red)}
+.layer.mid{border-left-color:var(--yellow)}
+.layer.mid .score{color:var(--yellow)}
+.layer.mid .bar > div{background:var(--yellow)}
+
+.findings{margin-top:14px;background:var(--ink);border:1px solid var(--line);padding:12px 14px;border-radius:2px}
+.findings h3{font-family:var(--serif);font-size:13px;color:var(--cream);margin-bottom:8px}
+.findings ul{list-style:none}
+.findings li{padding:5px 0 5px 16px;position:relative;font-size:13px;color:var(--cream);border-bottom:1px dashed var(--line)}
+.findings li:last-child{border-bottom:none}
+.findings li::before{content:'›';position:absolute;left:0;color:var(--brass)}
+.findings li.high::before{content:'!';color:var(--red);font-weight:700}
+.findings li.med::before{content:'~';color:var(--yellow);font-weight:700}
+
+.regression{margin-top:14px;padding:11px 14px;border-radius:2px;font-size:13px}
+.regression.warn{background:rgba(239,68,68,0.10);border:1px solid var(--red);color:#fecaca}
+.regression.ok{background:rgba(74,222,128,0.08);border:1px solid var(--green);color:#bbf7d0}
+.regression .delta{font-family:var(--mono);font-weight:600;margin-right:8px}
+
+/* HISTORY */
+.history-list{display:flex;flex-direction:column;gap:6px;max-height:540px;overflow:auto}
+.history-item{padding:9px 11px;background:var(--ink);border:1px solid var(--line);border-radius:2px;cursor:pointer;transition:border-color 0.12s}
+.history-item:hover{border-color:var(--brass)}
+.history-item .h1{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.history-item .name{font-weight:600;color:var(--cream)}
+.history-item .v{font-family:var(--mono);color:var(--brass);font-size:11px}
+.history-item .meta{font-family:var(--mono);font-size:10px;color:var(--cream-dim);margin-top:3px;letter-spacing:0.04em}
+.history-item .sc{font-family:var(--mono);font-size:11px;color:var(--amber);font-weight:600}
+.history-item.weak .sc{color:var(--red)}
+.history-item.good .sc{color:var(--green)}
+.empty{padding:24px 8px;text-align:center;color:var(--cream-dim);font-size:12px;font-style:italic}
+
+/* SCENARIOS */
+.scenario{background:var(--ink);border:1px solid var(--line);border-radius:2px;padding:10px 12px;margin-bottom:8px}
+.scenario .x{float:right;color:var(--cream-dim);cursor:pointer;font-family:var(--mono)}
+.scenario .x:hover{color:var(--red)}
+.scenario textarea{min-height:60px;font-size:12px;margin-top:4px}
+.scenario .res{margin-top:8px;padding:8px 10px;background:var(--void);border:1px solid var(--line);border-radius:2px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;color:var(--cream-dim);max-height:180px;overflow:auto}
+.scenario .judge{margin-top:6px;font-size:11px;font-family:var(--mono);color:var(--brass)}
+.scenario .judge.ok{color:var(--green)}
+.scenario .judge.bad{color:var(--red)}
+
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--void-2);border:1px solid var(--brass);border-radius:3px;padding:24px;max-width:760px;width:100%;max-height:90vh;overflow:auto;position:relative}
+.modal h2{font-family:var(--serif);font-size:18px;margin-bottom:14px;color:var(--cream)}
+.modal h3{font-family:var(--serif);font-size:14px;margin:18px 0 8px;color:var(--brass)}
+.modal p,.modal li{font-size:13px;line-height:1.6;color:var(--cream)}
+.modal ul{padding-left:18px;margin-bottom:10px}
+.modal table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+.modal th,.modal td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.modal th{color:var(--brass);font-weight:600;font-size:11px;letter-spacing:0.06em;text-transform:uppercase}
+.modal .close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--cream-dim);font-size:22px;cursor:pointer}
+.modal .close:hover{color:var(--red)}
+
+footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--cream-dim);text-align:center;letter-spacing:0.06em}
+footer .seal{font-family:var(--mono);color:var(--amber);letter-spacing:0.14em}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="glyph">⚒</span>
+    <h1>fall-prompt-gate</h1>
+    <span class="tag">six layers · version history · regression detection</span>
+  </div>
+  <div class="toolbar">
+    <button class="btn-icon" onclick="openModal('spec')">framework</button>
+    <button class="btn-icon" onclick="openModal('key')">api key</button>
+    <button class="btn-icon" onclick="exportAll()">export</button>
+  </div>
+</header>
+
+<div class="grid">
+
+<div>
+<section>
+  <h2>prompt under test <span class="hint">paste · score · iterate</span></h2>
+
+  <label>prompt name</label>
+  <input type="text" id="pname" placeholder="e.g. fallbrief-system-prompt">
+
+  <div class="row">
+    <div>
+      <label>version</label>
+      <input type="text" id="pver" placeholder="v1" value="v1">
+    </div>
+    <div>
+      <label>type</label>
+      <select id="ptype">
+        <option value="agent_system">agent system prompt</option>
+        <option value="subagent">sub-agent / specialist</option>
+        <option value="one_shot">one-shot / chat</option>
+        <option value="tool_use">tool-use instructions</option>
+        <option value="skill">skill / slash command</option>
+        <option value="reference">reference / spec file</option>
+      </select>
+    </div>
+    <div>
+      <label>target model</label>
+      <select id="pmodel">
+        <option value="opus">opus class (reasoning)</option>
+        <option value="sonnet" selected>sonnet class (balanced)</option>
+        <option value="haiku">haiku class (fast)</option>
+        <option value="local-small">local · small (≤8B)</option>
+        <option value="local-mid">local · mid (8-70B)</option>
+        <option value="other">other / generic</option>
+      </select>
+    </div>
+  </div>
+
+  <label>prompt text</label>
+  <textarea id="ptext" class="tall" placeholder="Paste the prompt. The Gate reads it locally — nothing leaves the device until you opt into a scenario run."></textarea>
+  <div class="tokens" id="tokstat">0 chars · ~0 tokens</div>
+
+  <div class="actions">
+    <button class="btn primary" onclick="runGate()">Run the Gate</button>
+    <button class="btn" onclick="runScenarios()">Run Scenarios →</button>
+    <button class="btn btn-sm" onclick="loadSample()">sample prompt</button>
+    <button class="btn btn-sm" onclick="clearInput()">clear</button>
+  </div>
+</section>
+
+<section style="margin-top:18px">
+  <h2>scenarios <span class="hint">behaviour tests · optional · needs api key for scoring</span></h2>
+  <p style="font-size:12px;color:var(--cream-dim);margin-bottom:10px">Each scenario is an input the prompt should handle. Provide the input, and optionally the expected behaviour. Run Scenarios sends prompt + input to your selected model, then a separate judge call grades the output.</p>
+  <div id="scenarios"></div>
+  <button class="btn btn-sm" onclick="addScenario()">+ add scenario</button>
+</section>
+
+<section id="result-section" style="margin-top:18px;display:none">
+  <h2>reading <span class="hint" id="result-meta"></span></h2>
+  <div id="regression"></div>
+  <div class="layers" id="layers"></div>
+  <div class="findings" id="findings"></div>
+  <div class="actions">
+    <button class="btn primary" onclick="saveReading()">Save Reading</button>
+    <button class="btn" onclick="exportReading()">Export markdown</button>
+  </div>
+</section>
+</div>
+
+<div>
+<section>
+  <h2>history <span class="hint">click a row to load</span></h2>
+  <div id="history" class="history-list"><div class="empty">no readings saved yet</div></div>
+</section>
+
+<section style="margin-top:18px">
+  <h2>weights for this type</h2>
+  <div id="weights" style="font-family:var(--mono);font-size:12px;color:var(--cream-dim);line-height:1.9"></div>
+</section>
+</div>
+
+</div>
+
+<footer>
+  <div>⚒ fall-prompt-gate · MIT · sovereign · single file · <span class="seal">prime 619 · ◊·κ=1</span></div>
+  <div style="margin-top:6px">part of the <a href="https://github.com/sjgant80-hub">fall* estate</a> · informed by the <a href="https://aicraftspeopleguild.github.io">AI Craftspeople Guild</a> audit checklist · forked from copy-gate</div>
+</footer>
+
+<!-- FRAMEWORK MODAL -->
+<div class="modal-backdrop" id="modal-spec">
+  <div class="modal">
+    <button class="close" onclick="closeModal('spec')">×</button>
+    <h2>The Six Layers · what each one scores</h2>
+    <p>Every prompt is read through six independent layers. Each layer is a heuristic check, weighted by prompt type, that surfaces a specific failure mode. Scores are 0-100. The Gate's job is not to write your prompt — it's to tell you which layer is hedging.</p>
+
+    <h3>1 · CLARITY</h3>
+    <p>Is the instruction specific or vague? Counts imperative verbs, concrete nouns, numbers, file paths. Penalises wishy-washy modal hedges ("maybe", "try to", "should probably") and adverb spray.</p>
+
+    <h3>2 · CONSTRAINT</h3>
+    <p>Are the rails defined? Looks for negative space — "do not", "never", "must not", "avoid", "without". A prompt with no constraints invites hallucination. A prompt with only constraints is brittle. The weights tune this.</p>
+
+    <h3>3 · RUBRIC</h3>
+    <p>Does the prompt define what "good output" looks like? Counts format directives, output structure cues, schemas, example outputs, return-type hints. A prompt without a rubric is a vibe.</p>
+
+    <h3>4 · GROUNDING</h3>
+    <p>Is the model anchored to context, or floating? Looks for role definitions, source references, named entities, file mentions, examples, and section markers. Ungrounded prompts hallucinate confidently.</p>
+
+    <h3>5 · REGRESSION</h3>
+    <p>How does this version compare to the last saved one (same name)? Diff size, token delta, score delta per layer. Surfaces drift before it ships. If there's no prior version, this layer is informational only.</p>
+
+    <h3>6 · MODEL FIT</h3>
+    <p>Does the prompt suit the chosen target model? Fast/cheap models need short, single-task prompts; reasoning models tolerate long chains and meta-instructions. The Gate flags mismatch — e.g. a 4000-token chain-of-thought instruction aimed at a Haiku-class model.</p>
+
+    <h3>Weights per prompt type</h3>
+    <table>
+      <tr><th>type</th><th>clarity</th><th>constraint</th><th>rubric</th><th>grounding</th><th>regression</th><th>model fit</th></tr>
+      <tr><td>agent system</td><td>15</td><td>25</td><td>20</td><td>15</td><td>15</td><td>10</td></tr>
+      <tr><td>sub-agent</td><td>20</td><td>20</td><td>15</td><td>20</td><td>15</td><td>10</td></tr>
+      <tr><td>one-shot</td><td>30</td><td>10</td><td>20</td><td>15</td><td>10</td><td>15</td></tr>
+      <tr><td>tool-use</td><td>20</td><td>25</td><td>30</td><td>10</td><td>10</td><td>5</td></tr>
+      <tr><td>skill</td><td>25</td><td>15</td><td>25</td><td>15</td><td>10</td><td>10</td></tr>
+      <tr><td>reference</td><td>20</td><td>10</td><td>15</td><td>40</td><td>10</td><td>5</td></tr>
+    </table>
+
+    <h3>The one rule</h3>
+    <p><strong>Trust needs proof — and proof has to be checked.</strong> A green Gate doesn't mean the prompt works. It means six heuristics didn't catch anything. Run the scenarios. Read the outputs. Don't ship until the actual behaviour matches the rubric.</p>
+  </div>
+</div>
+
+<!-- API KEY MODAL -->
+<div class="modal-backdrop" id="modal-key">
+  <div class="modal">
+    <button class="close" onclick="closeModal('key')">×</button>
+    <h2>Anthropic API key</h2>
+    <p>Required only for <strong>scenario runs</strong> (running the prompt against test inputs and grading outputs). Static layer scoring works fully offline without a key.</p>
+    <p>Your key is stored in this browser's localStorage. It is sent only to <code>api.anthropic.com</code>, direct from your browser. It is never logged, never relayed.</p>
+    <label>key</label>
+    <input type="text" id="apikey" placeholder="sk-ant-...">
+    <div class="actions">
+      <button class="btn primary" onclick="saveKey()">save</button>
+      <button class="btn" onclick="clearKey()">clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ───────── constants ─────────
+const PRIME = 619;
+const SCHEMA_VERSION = 1;
+const LAYER_NAMES = {
+  clarity: 'Clarity',
+  constraint: 'Constraint',
+  rubric: 'Rubric',
+  grounding: 'Grounding',
+  regression: 'Regression',
+  fit: 'Model fit'
+};
+const WEIGHTS = {
+  agent_system: { clarity: 15, constraint: 25, rubric: 20, grounding: 15, regression: 15, fit: 10 },
+  subagent:     { clarity: 20, constraint: 20, rubric: 15, grounding: 20, regression: 15, fit: 10 },
+  one_shot:     { clarity: 30, constraint: 10, rubric: 20, grounding: 15, regression: 10, fit: 15 },
+  tool_use:     { clarity: 20, constraint: 25, rubric: 30, grounding: 10, regression: 10, fit: 5 },
+  skill:        { clarity: 25, constraint: 15, rubric: 25, grounding: 15, regression: 10, fit: 10 },
+  reference:    { clarity: 20, constraint: 10, rubric: 15, grounding: 40, regression: 10, fit: 5 }
+};
+const MODEL_PROFILES = {
+  opus:        { name: 'opus class', tokenSweetSpot: [200, 8000], wantsRubric: true,  toleratesChain: true,  apiId: 'claude-opus-4-5' },
+  sonnet:      { name: 'sonnet class', tokenSweetSpot: [150, 4000], wantsRubric: true,  toleratesChain: true,  apiId: 'claude-sonnet-4-5' },
+  haiku:       { name: 'haiku class', tokenSweetSpot: [50, 1500],  wantsRubric: true,  toleratesChain: false, apiId: 'claude-haiku-4-5' },
+  'local-small':{ name: 'local small', tokenSweetSpot: [30, 800],   wantsRubric: true,  toleratesChain: false, apiId: null },
+  'local-mid': { name: 'local mid',   tokenSweetSpot: [80, 2500],  wantsRubric: true,  toleratesChain: false, apiId: null },
+  other:       { name: 'generic',     tokenSweetSpot: [100, 3000], wantsRubric: true,  toleratesChain: false, apiId: null }
+};
+
+// ───────── token estimate ─────────
+function estTokens(t){ return Math.max(1, Math.round((t||'').length / 4)); }
+
+// ───────── escape ─────────
+function esc(s){ return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ───────── layer scoring ─────────
+function scoreClarity(t){
+  if (!t.trim()) return { score: 0, notes: 'empty prompt' };
+  const wc = (t.match(/\b\w+\b/g) || []).length;
+  // imperative verbs at sentence start
+  const imperatives = ['use','return','write','generate','create','build','find','list','identify','extract','summarise','summarize','classify','rank','score','format','output','respond','answer','do','analyse','analyze','check','validate','transform','convert','parse','filter','select','call','invoke','emit'];
+  const sentences = t.split(/[.\n!?]+/).filter(s => s.trim().length > 3);
+  let impCount = 0;
+  for (const s of sentences) {
+    const first = (s.trim().toLowerCase().split(/\W+/)[0] || '');
+    if (imperatives.includes(first)) impCount++;
+  }
+  const impRatio = sentences.length ? impCount / sentences.length : 0;
+  // concrete markers
+  const numbers = (t.match(/\b\d+\b/g) || []).length;
+  const paths = (t.match(/[\/\\]\w|\.\w{2,5}\b|`[^`]+`/g) || []).length;
+  const concrete = numbers + paths;
+  // hedges
+  const hedgeRe = /\b(maybe|perhaps|might|kind of|sort of|try to|probably|possibly|generally|usually|somewhat|fairly|quite|rather|just|simply)\b/gi;
+  const hedges = (t.match(hedgeRe) || []).length;
+  const hedgeRatio = wc ? hedges / wc : 0;
+  // adverb spray
+  const adverbs = (t.match(/\b\w+ly\b/g) || []).length;
+  const adRatio = wc ? adverbs / wc : 0;
+
+  let score = 50;
+  score += Math.min(20, impRatio * 40);
+  score += Math.min(15, concrete * 1.2);
+  score -= Math.min(25, hedgeRatio * 1200);
+  score -= Math.min(10, Math.max(0, adRatio * 400 - 8));
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const notes = [];
+  if (impCount === 0 && sentences.length > 0) notes.push('no imperative verbs at sentence starts');
+  if (hedges > 3) notes.push(`${hedges} hedge words detected (maybe / try / probably …)`);
+  if (concrete === 0 && wc > 30) notes.push('zero concrete markers (numbers, paths, code refs)');
+  if (impRatio > 0.4 && hedges < 2) notes.push('clean instruction shape');
+  return { score, notes: notes.join(' · ') || '—' };
+}
+
+function scoreConstraint(t){
+  if (!t.trim()) return { score: 0, notes: 'empty prompt' };
+  const negRe = /\b(do not|don'?t|never|must not|avoid|without|except|only|strictly|under no|refuse|reject)\b/gi;
+  const negs = (t.match(negRe) || []).length;
+  const wc = (t.match(/\b\w+\b/g) || []).length;
+  const density = wc ? negs / Math.max(1, wc/100) : 0; // per 100 words
+
+  let score = 30 + Math.min(50, density * 25);
+  // bonus for explicit edge-case section markers
+  if (/edge case|exception|when uncertain|if unsure|when you can'?t|in case of/i.test(t)) score += 10;
+  // boundary words
+  if (/scope|out of scope|in scope|boundary|domain/i.test(t)) score += 5;
+  if (negs === 0) score = Math.min(score, 35);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const notes = [];
+  if (negs === 0) notes.push('no negative constraints — model has unbounded latitude');
+  else notes.push(`${negs} constraint marker${negs===1?'':'s'} found`);
+  if (/edge case|when uncertain|if unsure/i.test(t)) notes.push('edge cases addressed');
+  return { score, notes: notes.join(' · ') };
+}
+
+function scoreRubric(t){
+  if (!t.trim()) return { score: 0, notes: 'empty prompt' };
+  const fmtRe = /\b(json|yaml|xml|markdown|table|list|csv|format|schema|return\s+a|output\s+as|respond\s+with|answer\s+in)\b/gi;
+  const fmt = (t.match(fmtRe) || []).length;
+  const examples = (t.match(/<example|example:|e\.g\.|for example|example output|sample input|sample output/gi) || []).length;
+  const codeBlocks = (t.match(/```/g) || []).length;
+  const goodLooksLike = /good (output|answer|response) (looks like|is)|criteria|rubric|grading|quality bar|expected/i.test(t) ? 1 : 0;
+
+  let score = 25;
+  score += Math.min(30, fmt * 6);
+  score += Math.min(20, examples * 10);
+  score += Math.min(15, (codeBlocks / 2) * 8);
+  score += goodLooksLike * 15;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const notes = [];
+  if (fmt === 0 && examples === 0) notes.push('no format directives, no examples — output shape undefined');
+  else {
+    const bits = [];
+    if (fmt) bits.push(`${fmt} format hint${fmt===1?'':'s'}`);
+    if (examples) bits.push(`${examples} example marker${examples===1?'':'s'}`);
+    if (codeBlocks) bits.push(`${Math.floor(codeBlocks/2)} code block${codeBlocks===2?'':'s'}`);
+    if (goodLooksLike) bits.push('explicit quality criteria');
+    notes.push(bits.join(' · '));
+  }
+  return { score, notes: notes.join(' · ') };
+}
+
+function scoreGrounding(t){
+  if (!t.trim()) return { score: 0, notes: 'empty prompt' };
+  const wc = (t.match(/\b\w+\b/g) || []).length;
+  const roles = /\b(you are|you'?re|act as|your role|your job|your task|as an? \w+)\b/gi;
+  const roleHits = (t.match(roles) || []).length;
+  const fileRefs = (t.match(/[\w-]+\.(html|js|md|json|py|ts|tsx|yaml|yml|sql|css|sh)\b/gi) || []).length;
+  const proper = (t.match(/[A-Z][a-z]+(?:[A-Z][a-z]+)+/g) || []).length; // CamelCase entities
+  const ats = (t.match(/@[\w-]+/g) || []).length;
+  const sections = (t.match(/^#+\s|^---|<context>|<instructions>|##\s/gm) || []).length;
+  const inputVars = (t.match(/\{\{[\w\s.]+\}\}|\{[\w_]+\}|\$\{[^}]+\}/g) || []).length;
+
+  let score = 20;
+  score += Math.min(20, roleHits * 8);
+  score += Math.min(15, fileRefs * 4);
+  score += Math.min(12, proper * 1.5);
+  score += Math.min(8, ats * 4);
+  score += Math.min(15, sections * 3);
+  score += Math.min(10, inputVars * 3);
+  if (wc < 20) score = Math.min(score, 40); // tiny prompts can't be well-grounded
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const notes = [];
+  if (roleHits === 0) notes.push('no role / job statement');
+  if (sections === 0 && wc > 80) notes.push('no section markers in a long prompt');
+  if (inputVars === 0 && /reference|template|skill/i.test(t)) notes.push('no input variables — fixed prompt');
+  if (roleHits && sections) notes.push('role and sections present');
+  return { score, notes: notes.join(' · ') || '—' };
+}
+
+function scoreRegression(t, prevReading){
+  if (!prevReading) {
+    return { score: 75, notes: 'no prior version — informational baseline', delta: null };
+  }
+  const prev = prevReading.text || '';
+  // simple normalized levenshtein-lite via shared-line ratio
+  const a = new Set(t.split('\n').map(s => s.trim()).filter(Boolean));
+  const b = new Set(prev.split('\n').map(s => s.trim()).filter(Boolean));
+  let shared = 0;
+  for (const line of a) if (b.has(line)) shared++;
+  const sim = a.size + b.size > 0 ? (2 * shared) / (a.size + b.size) : 1;
+  const tokenDelta = estTokens(t) - estTokens(prev);
+  const prevAvg = avgScore(prevReading.scores, prevReading.weights);
+
+  let score = 70;
+  // big surprise diff penalty
+  if (sim < 0.3) score -= 25;
+  else if (sim < 0.6) score -= 10;
+  // big token change penalty
+  if (Math.abs(tokenDelta) > 500) score -= 10;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const notes = [];
+  notes.push(`vs ${prevReading.version}: line similarity ${Math.round(sim*100)}%`);
+  notes.push(`${tokenDelta>=0?'+':''}${tokenDelta} tokens`);
+  return { score, notes: notes.join(' · '), delta: { sim, tokenDelta, prevAvg, prevVersion: prevReading.version } };
+}
+
+function scoreFit(t, modelKey){
+  const profile = MODEL_PROFILES[modelKey];
+  if (!profile) return { score: 50, notes: 'unknown model class' };
+  const toks = estTokens(t);
+  const [lo, hi] = profile.tokenSweetSpot;
+  let score = 80;
+  const notes = [];
+
+  if (toks < lo) {
+    score -= Math.min(40, (lo - toks) * 0.5);
+    notes.push(`${toks} tokens — below sweet spot ${lo}-${hi} for ${profile.name}`);
+  } else if (toks > hi) {
+    score -= Math.min(40, (toks - hi) * 0.04);
+    notes.push(`${toks} tokens — above sweet spot ${lo}-${hi} for ${profile.name}`);
+  } else {
+    notes.push(`${toks} tokens — in sweet spot for ${profile.name}`);
+  }
+
+  // chain-of-thought instructions on a non-CoT model
+  const hasCoT = /step[\s-]?by[\s-]?step|chain of thought|think (first|carefully|out loud)|reasoning before|explain your thinking|<thinking>/i.test(t);
+  if (hasCoT && !profile.toleratesChain) {
+    score -= 15;
+    notes.push('explicit chain-of-thought directives on fast/cheap model class');
+  }
+
+  // rubric absence on rubric-loving model
+  const hasRubric = /format|json|output as|return a|respond with|good (output|answer)|<output>|schema/i.test(t);
+  if (!hasRubric && profile.wantsRubric) {
+    score -= 10;
+    notes.push('no output rubric on a rubric-loving model');
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  return { score, notes: notes.join(' · ') };
+}
+
+function avgScore(scores, weights){
+  let total = 0, sumW = 0;
+  for (const k of Object.keys(weights)) {
+    total += (scores[k]?.score || 0) * weights[k];
+    sumW += weights[k];
+  }
+  return Math.round(total / sumW);
+}
+
+// ───────── run the gate ─────────
+function runGate(){
+  const text = document.getElementById('ptext').value;
+  const ptype = document.getElementById('ptype').value;
+  const pmodel = document.getElementById('pmodel').value;
+  const pname = document.getElementById('pname').value.trim() || 'untitled';
+  const pver = document.getElementById('pver').value.trim() || 'v1';
+
+  if (!text.trim()) { alert('paste a prompt first'); return; }
+
+  // find previous version of same prompt name (any version, latest before now)
+  const prev = findPrevReading(pname, pver);
+
+  const scores = {
+    clarity: scoreClarity(text),
+    constraint: scoreConstraint(text),
+    rubric: scoreRubric(text),
+    grounding: scoreGrounding(text),
+    regression: scoreRegression(text, prev),
+    fit: scoreFit(text, pmodel)
+  };
+  const weights = WEIGHTS[ptype];
+
+  const reading = {
+    id: crypto.randomUUID(),
+    name: pname, version: pver, type: ptype, model: pmodel,
+    text, scores, weights,
+    avg: avgScore(scores, weights),
+    ts: new Date().toISOString(),
+    prevVersion: prev ? prev.version : null
+  };
+  current = reading;
+  renderResult(reading, prev);
+}
+
+// ───────── render ─────────
+function bandClass(score){
+  if (score >= 75) return 'good';
+  if (score >= 50) return 'mid';
+  return 'weak';
+}
+
+function renderResult(r, prev){
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('result-meta').textContent = `${r.name} · ${r.version} · ${MODEL_PROFILES[r.model].name} · avg ${r.avg}/100`;
+
+  const order = ['clarity','constraint','rubric','grounding','regression','fit'];
+  const lhtml = order.map(k => {
+    const s = r.scores[k];
+    return `<div class="layer ${bandClass(s.score)}">
+      <div class="head">
+        <div class="name">${LAYER_NAMES[k]}<span class="w">w ${r.weights[k]}%</span></div>
+        <div class="score">${s.score}</div>
+      </div>
+      <div class="bar"><div style="width:${s.score}%"></div></div>
+      <div class="notes">${esc(s.notes || '—')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('layers').innerHTML = lhtml;
+
+  // regression banner
+  const reg = document.getElementById('regression');
+  if (prev) {
+    const dAvg = r.avg - prev.avg;
+    if (dAvg < -5) {
+      reg.innerHTML = `<div class="regression warn"><span class="delta">${dAvg}</span>average score dropped from ${prev.avg} (${prev.version}) to ${r.avg} (${r.version}). regression caught — review the layer with the biggest decline before shipping.</div>`;
+    } else if (dAvg > 5) {
+      reg.innerHTML = `<div class="regression ok"><span class="delta">+${dAvg}</span>average score improved from ${prev.avg} (${prev.version}) to ${r.avg} (${r.version}).</div>`;
+    } else {
+      reg.innerHTML = `<div class="regression ok"><span class="delta">${dAvg>=0?'+':''}${dAvg}</span>average score steady vs ${prev.version} (${prev.avg} → ${r.avg}).</div>`;
+    }
+  } else {
+    reg.innerHTML = '';
+  }
+
+  // findings
+  const findings = [];
+  for (const k of order) {
+    if (r.scores[k].score < 50 && r.weights[k] >= 15) {
+      findings.push({ sev: 'high', text: `${LAYER_NAMES[k]} scored ${r.scores[k].score}/100 with weight ${r.weights[k]}% — ${r.scores[k].notes}` });
+    } else if (r.scores[k].score < 70 && r.weights[k] >= 10) {
+      findings.push({ sev: 'med', text: `${LAYER_NAMES[k]} weak (${r.scores[k].score}/100) — ${r.scores[k].notes}` });
+    }
+  }
+  if (findings.length === 0) findings.push({ sev: 'ok', text: 'no layer scored below threshold for its weight — Gate clean. (Reminder: this only catches what heuristics catch. Run scenarios.)' });
+  document.getElementById('findings').innerHTML = `<h3>prioritised findings</h3><ul>${findings.map(f => `<li class="${f.sev}">${esc(f.text)}</li>`).join('')}</ul>`;
+
+  document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderWeights(){
+  const ptype = document.getElementById('ptype').value;
+  const w = WEIGHTS[ptype];
+  document.getElementById('weights').innerHTML = Object.entries(w).map(([k,v]) =>
+    `<div><span style="color:var(--cream)">${LAYER_NAMES[k]}</span> <span style="float:right;color:var(--amber)">${v}%</span></div>`
+  ).join('');
+}
+
+// ───────── IndexedDB ─────────
+let db;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('fall-prompt-gate', SCHEMA_VERSION);
+    r.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('readings')) {
+        const s = d.createObjectStore('readings', { keyPath: 'id' });
+        s.createIndex('name', 'name', { unique: false });
+        s.createIndex('ts', 'ts', { unique: false });
+      }
+    };
+    r.onsuccess = e => { db = e.target.result; res(db); };
+    r.onerror = e => rej(e);
+  });
+}
+
+async function saveReading(){
+  if (!current) { alert('run the gate first'); return; }
+  if (!db) await openDB();
+  // also attach any scenario results stored on current
+  current.scenarios = scenarioState.map(s => ({ input: s.input, expected: s.expected, output: s.output, judge: s.judge, score: s.score }));
+  const tx = db.transaction('readings', 'readwrite');
+  tx.objectStore('readings').put(current);
+  tx.oncomplete = () => { renderHistory(); flash('saved'); };
+}
+
+async function deleteReading(id){
+  if (!db) await openDB();
+  const tx = db.transaction('readings', 'readwrite');
+  tx.objectStore('readings').delete(id);
+  tx.oncomplete = renderHistory;
+}
+
+async function allReadings(){
+  if (!db) await openDB();
+  return new Promise(res => {
+    const tx = db.transaction('readings', 'readonly');
+    const req = tx.objectStore('readings').getAll();
+    req.onsuccess = () => res(req.result || []);
+  });
+}
+
+let _historyCache = [];
+async function renderHistory(){
+  const rows = await allReadings();
+  rows.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  _historyCache = rows;
+  const host = document.getElementById('history');
+  if (rows.length === 0) { host.innerHTML = '<div class="empty">no readings saved yet</div>'; return; }
+  host.innerHTML = rows.map(r => {
+    const band = r.avg >= 75 ? 'good' : (r.avg < 50 ? 'weak' : '');
+    return `<div class="history-item ${band}" onclick="loadReading('${r.id}')">
+      <div class="h1">
+        <span class="name">${esc(r.name)} <span class="v">${esc(r.version)}</span></span>
+        <span class="sc">${r.avg}/100</span>
+      </div>
+      <div class="meta">${esc(r.type)} · ${esc(MODEL_PROFILES[r.model]?.name||r.model)} · ${esc((r.ts||'').slice(0,16).replace('T',' '))}</div>
+    </div>`;
+  }).join('');
+}
+
+function loadReading(id){
+  const r = _historyCache.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('pname').value = r.name;
+  document.getElementById('pver').value = r.version;
+  document.getElementById('ptype').value = r.type;
+  document.getElementById('pmodel').value = r.model;
+  document.getElementById('ptext').value = r.text;
+  current = r;
+  // restore scenarios
+  scenarioState = (r.scenarios||[]).map(s => ({ ...s }));
+  renderScenarios();
+  renderWeights();
+  updateTokens();
+  const prev = findPrevReadingExcept(r.name, r.version, r.id);
+  renderResult(r, prev);
+}
+
+function findPrevReading(name, ver){
+  const candidates = _historyCache.filter(r => r.name === name && r.version !== ver);
+  if (!candidates.length) return null;
+  // most recent
+  candidates.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  return candidates[0];
+}
+function findPrevReadingExcept(name, ver, excludeId){
+  const candidates = _historyCache.filter(r => r.name === name && r.id !== excludeId);
+  if (!candidates.length) return null;
+  candidates.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  return candidates[0];
+}
+
+// ───────── scenarios ─────────
+let scenarioState = [];
+function addScenario(){
+  scenarioState.push({ input: '', expected: '', output: '', judge: '', score: null });
+  renderScenarios();
+}
+function rmScenario(i){
+  scenarioState.splice(i, 1);
+  renderScenarios();
+}
+function updScenarioInput(i, field, v){
+  scenarioState[i][field] = v;
+}
+function renderScenarios(){
+  const host = document.getElementById('scenarios');
+  if (scenarioState.length === 0) { host.innerHTML = '<div class="empty">no scenarios yet · add one to test behaviour</div>'; return; }
+  host.innerHTML = scenarioState.map((s, i) => `
+    <div class="scenario">
+      <span class="x" onclick="rmScenario(${i})">×</span>
+      <label>input #${i+1}</label>
+      <textarea onchange="updScenarioInput(${i},'input',this.value)" placeholder="what the model receives as user input">${esc(s.input)}</textarea>
+      <label>expected (optional · used as judge rubric)</label>
+      <textarea onchange="updScenarioInput(${i},'expected',this.value)" placeholder="describe the expected behaviour or output shape · leave blank for human review only" style="min-height:50px">${esc(s.expected)}</textarea>
+      ${s.output ? `<div class="res">${esc(s.output)}</div>` : ''}
+      ${s.judge ? `<div class="judge ${s.score >= 70 ? 'ok' : (s.score < 40 ? 'bad' : '')}">judge: ${esc(s.judge)} ${s.score !== null ? `· score ${s.score}/100` : ''}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function runScenarios(){
+  const key = localStorage.getItem('fpg_apikey');
+  if (!key) { alert('add an Anthropic API key (toolbar) before running scenarios'); openModal('key'); return; }
+  if (scenarioState.length === 0) { alert('add at least one scenario'); return; }
+
+  const text = document.getElementById('ptext').value;
+  const modelKey = document.getElementById('pmodel').value;
+  const profile = MODEL_PROFILES[modelKey];
+  if (!profile.apiId) {
+    alert(`Scenario runs require an Anthropic-API model class. "${profile.name}" runs locally. Switch model to opus/sonnet/haiku for cloud scoring, or run scenarios manually offline.`);
+    return;
+  }
+
+  flash('running scenarios…');
+  for (let i = 0; i < scenarioState.length; i++) {
+    const s = scenarioState[i];
+    s.output = '… running …'; renderScenarios();
+    try {
+      const output = await callAnthropic(key, profile.apiId, text, s.input, 1024);
+      s.output = output;
+      if (s.expected.trim()) {
+        const judgeJson = await callAnthropic(key, MODEL_PROFILES.sonnet.apiId,
+          `You are a strict evaluator. Compare the actual output against the expected criteria. Return ONLY a JSON object: {"score": <0-100 integer>, "verdict": "<one short sentence>"}. Be honest — if it misses the criteria, score low.`,
+          `EXPECTED CRITERIA:\n${s.expected}\n\nACTUAL OUTPUT:\n${output}\n\nReturn only the JSON.`,
+          200
+        );
+        // parse
+        const m = judgeJson.match(/\{[^{}]*"score"[^{}]*\}/);
+        if (m) {
+          try {
+            const parsed = JSON.parse(m[0]);
+            s.score = parseInt(parsed.score, 10);
+            s.judge = parsed.verdict || '';
+          } catch { s.judge = judgeJson.slice(0, 140); s.score = null; }
+        } else { s.judge = judgeJson.slice(0, 140); s.score = null; }
+      } else {
+        s.judge = 'no expected criteria · human review only';
+        s.score = null;
+      }
+    } catch (e) {
+      s.output = `[error] ${e.message}`;
+      s.judge = ''; s.score = null;
+    }
+    renderScenarios();
+  }
+  flash('scenarios complete');
+}
+
+async function callAnthropic(key, model, system, userInput, maxTokens){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens || 1024,
+      system,
+      messages: [{ role: 'user', content: userInput || ' ' }]
+    })
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t.slice(0,200)}`);
+  }
+  const data = await res.json();
+  return (data.content || []).map(c => c.text || '').join('').trim();
+}
+
+// ───────── misc UI ─────────
+let current = null;
+function updateTokens(){
+  const t = document.getElementById('ptext').value;
+  document.getElementById('tokstat').innerHTML = `${t.length.toLocaleString()} chars · <span class="hi">~${estTokens(t).toLocaleString()} tokens</span>`;
+}
+function loadSample(){
+  document.getElementById('pname').value = 'sample-agent';
+  document.getElementById('pver').value = 'v1';
+  document.getElementById('ptype').value = 'agent_system';
+  document.getElementById('pmodel').value = 'sonnet';
+  document.getElementById('ptext').value = `You are a code reviewer for sovereign single-file HTML tools.
+
+Your job: read a pasted index.html and surface three things — security risks, sovereignty violations, and bloat above the 400KB budget.
+
+Constraints:
+- Never recommend npm dependencies or build steps.
+- Never suggest server-side code.
+- Do not invent APIs — if you cite a function, confirm it exists in the file.
+
+Output format (JSON):
+{
+  "security": [{"line": <int>, "issue": "<short>", "severity": "high|med|low"}],
+  "sovereignty": [{"violation": "<short>", "remedy": "<short>"}],
+  "size": {"kb": <int>, "verdict": "ok|over"}
+}
+
+When uncertain, return an empty array for that section rather than fabricating findings. Cite line numbers from the input.`;
+  updateTokens();
+  renderScenarios();
+}
+function clearInput(){
+  document.getElementById('ptext').value = '';
+  scenarioState = [];
+  renderScenarios();
+  updateTokens();
+  document.getElementById('result-section').style.display = 'none';
+  current = null;
+}
+
+function openModal(name){ document.getElementById('modal-' + name).classList.add('open'); if (name === 'key') document.getElementById('apikey').value = localStorage.getItem('fpg_apikey') || ''; }
+function closeModal(name){ document.getElementById('modal-' + name).classList.remove('open'); }
+function saveKey(){ const k = document.getElementById('apikey').value.trim(); if (k) { localStorage.setItem('fpg_apikey', k); flash('key saved'); } closeModal('key'); }
+function clearKey(){ localStorage.removeItem('fpg_apikey'); document.getElementById('apikey').value = ''; flash('key cleared'); }
+
+function flash(msg){
+  const f = document.createElement('div');
+  f.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--amber);color:var(--void);padding:8px 18px;border-radius:2px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;z-index:200';
+  f.textContent = msg;
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1600);
+}
+
+function exportReading(){
+  if (!current) return;
+  const r = current;
+  const order = ['clarity','constraint','rubric','grounding','regression','fit'];
+  const md = `# ⚒ fall-prompt-gate reading
+
+**${r.name}** · ${r.version} · ${MODEL_PROFILES[r.model].name} · ${r.type}
+${r.ts}
+
+**Average: ${r.avg}/100**
+
+## Layer scores
+
+${order.map(k => `- **${LAYER_NAMES[k]}** (weight ${r.weights[k]}%) — ${r.scores[k].score}/100 — ${r.scores[k].notes}`).join('\n')}
+
+## Prompt
+
+\`\`\`
+${r.text}
+\`\`\`
+
+${(r.scenarios && r.scenarios.length) ? `## Scenarios\n\n${r.scenarios.map((s, i) => `### #${i+1}\n**Input:**\n\`\`\`\n${s.input}\n\`\`\`\n**Expected:** ${s.expected || '_(none)_'}\n**Output:**\n\`\`\`\n${s.output || '_(not run)_'}\n\`\`\`\n**Judge:** ${s.judge || '_(no judgement)_'}${s.score !== null && s.score !== undefined ? ` · ${s.score}/100` : ''}`).join('\n\n')}` : ''}
+
+---
+⚒ fall-prompt-gate · prime 619 · ◊·κ=1
+`;
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${r.name}-${r.version}-${(r.ts||'').slice(0,10)}.md`;
+  a.click();
+}
+
+async function exportAll(){
+  const rows = await allReadings();
+  const blob = new Blob([JSON.stringify({ schema: 'fall-prompt-gate@1', exported: new Date().toISOString(), readings: rows }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fall-prompt-gate-export-${Date.now()}.json`;
+  a.click();
+}
+
+// ───────── boot ─────────
+document.getElementById('ptext').addEventListener('input', updateTokens);
+document.getElementById('ptype').addEventListener('change', () => { renderWeights(); if (current) runGate(); });
+document.getElementById('pmodel').addEventListener('change', () => { if (current) runGate(); });
+document.addEventListener('click', e => {
+  if (e.target.classList && e.target.classList.contains('modal-backdrop')) closeModal(e.target.id.replace('modal-', ''));
+});
+renderWeights();
+updateTokens();
+openDB().then(renderHistory);
+</script>
+</body>
+</html>
