@@ -1,0 +1,7 @@
+[
+  {
+    "mutation": "< → <=",
+    "snippet": "for (let t = 16; t < 64; t++) {",
+    "reason": "Genuinely equivalent: the mutated bound runs one extra schedule iteration writing w[64], out of bounds on the fixed Uint32Array(64) — typed-array OOB writes are discarded, the loop body has no other effect, and nothing reads past w[63]. Bit-identical output; FIPS SHA-256 vectors pass either way."
+  }
+]
