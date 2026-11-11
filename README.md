@@ -1,7 +1,7 @@
 # ⚒ fall-prompt-gate
 
 > Sovereign prompt evaluation. Six layers · version history · regression detection · single HTML file.
-> Prime **619** · MIT · ◊·κ=1
+> Prime **619** · MIT
 
 **Live:** [sjgant80-hub.github.io/fall-prompt-gate](https://sjgant80-hub.github.io/fall-prompt-gate/) · **Fork it:** [github.com/sjgant80-hub/fall-prompt-gate](https://github.com/sjgant80-hub/fall-prompt-gate)
 
@@ -116,4 +116,4 @@ Pull requests welcome. The bar: every line of code pays rent.
 - **copy-gate** — the engine pattern this is forked from.
 - **Anthropic's prompt eval guidance** — the loop concept (run · score · iterate · version).
 
-⚒ Part of the [fall* estate](https://github.com/sjgant80-hub) · prime 619 · ◊·κ=1
+⚒ Part of the [fall* estate](https://github.com/sjgant80-hub)

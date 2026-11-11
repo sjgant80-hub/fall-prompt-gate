@@ -1,6 +1,6 @@
 # fall-prompt-gate
 
-> ⚒ fall-prompt-gate · sovereign prompt evaluation · six layers · version history · regression detection · single HTML · prime 619
+> ⚒ fall-prompt-gate · sovereign prompt evaluation · six layers · version history · regression detection · single HTML
 
 fall-prompt-gate is a sovereign, MIT-licensed build by Simon Gant (UK) — it runs in the browser, is free to own and fork, and is part of the AI Native Solutions estate. Source and a live page are linked below.
 
